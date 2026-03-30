@@ -6,9 +6,10 @@
 //
 
 #include "Scheduler.hpp"
+#include <stdio.h>
 
 static bool migrating = false;
-static unsigned active_machines = 16;
+static unsigned active_machines;
 
 void Scheduler::Init() {
     // Find the parameters of the clusters
@@ -18,17 +19,25 @@ void Scheduler::Init() {
     //      Get the memory of the machine
     //      Get the number of CPUs
     //      Get if there is a GPU or not
-    // 
+    active_machines = Machine_GetTotal();
     SimOutput("Scheduler::Init(): Total number of machines is " + to_string(Machine_GetTotal()), 3);
     SimOutput("Scheduler::Init(): Initializing scheduler", 1);
-    for(unsigned i = 0; i < active_machines; i++)
-        vms.push_back(VM_Create(LINUX, X86));
+
+    // initialize our machine
+    MachineId_t curr_machine;
+    MachineInfo_t curr_machine_info;
     for(unsigned i = 0; i < active_machines; i++) {
-        machines.push_back(MachineId_t(i));
-    }    
-    for(unsigned i = 0; i < active_machines; i++) {
+        // physical machine stuff
+        curr_machine = MachineId_t(i);
+        machines.push_back(curr_machine);
+        curr_machine_info = Machine_GetInfo(curr_machine); 
+
+        VMId_t vm_id = VM_Create(LINUX, curr_machine_info.cpu);
+        vms.push_back(vm_id);
+
         VM_Attach(vms[i], machines[i]);
-    }
+    }    
+
 
     bool dynamic = false;
     if(dynamic)
