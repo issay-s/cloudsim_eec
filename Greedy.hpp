@@ -2,7 +2,6 @@
 #include "SchedulingAlgorithm.hpp"
 
 
-
 class Greedy : public SchedulingAlgorithm {
 public:
 
@@ -10,7 +9,7 @@ public:
     map<VMId_t, MachineId_t>* vm_to_machine;
     map<TaskId_t, VMId_t>* task_to_vm;
 
-    void Init(vector<VMId_t> &vms, vector<MachineId_t> &machines,
+    void Init(
               map<MachineId_t, vector<VMId_t>> &m2v,
               map<VMId_t, MachineId_t> &v2m,
               map<TaskId_t, VMId_t> &t2v) override
@@ -73,6 +72,29 @@ public:
     }
 
 private:
+    VMId_t findOrCreateVM(MachineId_t mid, VMType_t required_vm)
+    {
+        // Look for an existing VM of the right type on this machine
+        for (VMId_t vm : (*machine_to_vms)[mid])
+        {
+            VMInfo_t info = VM_GetInfo(vm);
+            if (info.vm_type == required_vm)
+                return vm;
+        }
+
+        // None found — create one dynamically
+        MachineInfo_t m = Machine_GetInfo(mid);
+        VMId_t new_vm = VM_Create(required_vm, m.cpu);
+        VM_Attach(new_vm, mid);
+
+        (*machine_to_vms)[mid].push_back(new_vm);
+        (*vm_to_machine)[new_vm] = mid;
+        
+        (*machine_to_vms)[mid].push_back(new_vm);
+
+        return new_vm;
+    }
+
     double getMachineUtilization(MachineId_t mid)
     {
         MachineInfo_t info = Machine_GetInfo(mid);
@@ -98,26 +120,5 @@ private:
         double cpuPressure = 1.0 / machine.num_cpus;
 
         return 0.4 * cpuPressure + 0.6 * memPressure;
-    }
-    VMId_t findOrCreateVM(MachineId_t mid, VMType_t required_vm)
-    {
-        // Look for an existing VM of the right type on this machine
-        for (VMId_t vm : (*machine_to_vms)[mid])
-        {
-            VMInfo_t info = VM_GetInfo(vm);
-            if (info.vm_type == required_vm)
-                return vm;
-        }
-
-        // None found — create one dynamically
-        MachineInfo_t m = Machine_GetInfo(mid);
-        VMId_t new_vm = VM_Create(required_vm, m.cpu);
-        VM_Attach(new_vm, mid);
-
-        (*machine_to_vms)[mid].push_back(new_vm);
-        (*vm_to_machine)[new_vm] = mid;
-        vms.push_back(new_vm);
-
-        return new_vm;
     }
 };
