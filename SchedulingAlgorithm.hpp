@@ -4,6 +4,7 @@
 
 #include "Interfaces.h"
 #include <vector>
+#include <map>
 
 class SchedulingAlgorithm {
 public:

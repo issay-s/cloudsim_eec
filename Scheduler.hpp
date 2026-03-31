@@ -9,8 +9,10 @@
 #define Scheduler_hpp
 
 #include <vector>
+#include <map>
 
 #include "Interfaces.h"
+#include "SchedulingAlgorithm.hpp"
 
 class Scheduler {
 public:

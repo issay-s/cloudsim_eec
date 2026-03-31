@@ -5,8 +5,10 @@
 //  Created by ELMOOTAZBELLAH ELNOZAHY on 10/20/24.
 //
 
+#include "Greedy.hpp"
 #include "Scheduler.hpp"
 #include <stdio.h>
+
 
 static bool migrating = false;
 static unsigned active_machines;
@@ -85,8 +87,13 @@ void Scheduler::Shutdown(Time_t time) {
     // Report about the total energy consumed
     // Report about the SLA compliance
     // Shutdown everything to be tidy :-)
-    for(auto & vm: vms) {
-        VM_Shutdown(vm);
+    
+    for (auto &[mid, vm_list] : machine_to_vms)
+    {
+        for (VMId_t vm : vm_list)
+        {
+            VM_Shutdown(vm);
+        }
     }
     SimOutput("SimulationComplete(): Finished!", 4);
     SimOutput("SimulationComplete(): Time is " + to_string(time), 4);
