@@ -36,10 +36,14 @@ void Scheduler::Init() {
         vms.push_back(vm_id);
 
         VM_Attach(vms[i], machines[i]);
+
+        // Wire up the maps
+        machine_to_vms[curr_machine].push_back(vm_id);
+        vm_to_machine[vm_id] = curr_machine;
     }    
 
     algo = new Greedy();
-    algo->Init(vms, machines);
+    algo->Init(vms, machines, machine_to_vms, vm_to_machine, task_to_vm);
 
     SimOutput("Scheduler::Init(): VM ids are " + to_string(vms[0]) + " ahd " + to_string(vms[1]), 3);
 }
@@ -66,7 +70,7 @@ void Scheduler::NewTask(Time_t now, TaskId_t task_id) {
     // Turn on a machine, migrate an existing VM from a loaded machine....
     //
     // Other possibilities as desired
-
+    algo->NewTask(now, task_id);
 }
 
 void Scheduler::PeriodicCheck(Time_t now) {

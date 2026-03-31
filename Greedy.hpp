@@ -1,11 +1,25 @@
 // RoundRobin.hpp
 #include "SchedulingAlgorithm.hpp"
 
+
+
 class Greedy : public SchedulingAlgorithm {
 public:
-    void Init(vector<VMId_t>& vms, vector<MachineId_t>& machines) override {
+
+    map<MachineId_t, vector<VMId_t>>* machine_to_vms; 
+    map<VMId_t, MachineId_t>* vm_to_machine;
+    map<TaskId_t, VMId_t>* task_to_vm;
+
+    void Init(vector<VMId_t> &vms, vector<MachineId_t> &machines,
+              map<MachineId_t, vector<VMId_t>> &m2v,
+              map<VMId_t, MachineId_t> &v2m,
+              map<TaskId_t, VMId_t> &t2v) override
+    {
         this->vms = vms;
         this->machines = machines;
+        machine_to_vms = &m2v;
+        vm_to_machine = &v2m;
+        task_to_vm = &t2v;
     }
     void HandleNewTask(Time_t time, TaskId_t task_id)
     {
@@ -33,8 +47,25 @@ public:
                 best = mid;
             }
         }
+        if (best == (MachineId_t)-1)
+        {
+            return; TODO // no machine found — need to handle this (wake a machine, queue task, etc.)
+        }
 
-        VM_AddTask()
+        // Get a VM on the best machine
+        VMId_t target_vm = (*machine_to_vms)[best][0]; // first VM on that machine (should we always just pick the first one?)
+
+        // Determine priority based on SLA
+        Priority_t priority;
+        if (task.required_sla == SLA0)
+            priority = HIGH_PRIORITY;
+        else if (task.required_sla == SLA1)
+            priority = MID_PRIORITY;
+        else
+            priority = LOW_PRIORITY;
+
+        VM_AddTask(target_vm, task_id, priority);
+        (*task_to_vm)[task_id] = target_vm; // update the map!
     }
     void TaskComplete(Time_t now, TaskId_t task_id) override { /* ... */ }
     void PeriodicCheck(Time_t now) override { /* ... */ }
@@ -44,7 +75,7 @@ public:
     }
 
 private:
-    vector<VMId_t> vms;
+    vector<VMId_t> vms; 
     vector<MachineId_t> machines;
     double getMachineUtilization(MachineId_t mid)
     {
