@@ -1,4 +1,4 @@
-// RoundRobin.hpp
+// Greedy.hpp
 #include "SchedulingAlgorithm.hpp"
 
 
@@ -15,13 +15,11 @@ public:
               map<VMId_t, MachineId_t> &v2m,
               map<TaskId_t, VMId_t> &t2v) override
     {
-        this->vms = vms;
-        this->machines = machines;
         machine_to_vms = &m2v;
         vm_to_machine = &v2m;
         task_to_vm = &t2v;
     }
-    void HandleNewTask(Time_t time, TaskId_t task_id)
+    void NewTask(Time_t time, TaskId_t task_id)
     {
         TaskInfo_t task = GetTaskInfo(task_id);
 
@@ -49,11 +47,11 @@ public:
         }
         if (best == (MachineId_t)-1)
         {
-            return; TODO // no machine found — need to handle this (wake a machine, queue task, etc.)
+            return; // TODO no machine found — need to handle this (wake a machine, queue task, etc.)
         }
 
-        // Get a VM on the best machine
-        VMId_t target_vm = (*machine_to_vms)[best][0]; // first VM on that machine (should we always just pick the first one?)
+        // Get a VM on the best machine (or create one if the right type doesn't exist)
+        VMId_t target_vm = findOrCreateVM(best, RequiredVMType(task_id)); 
 
         // Determine priority based on SLA
         Priority_t priority;
@@ -71,12 +69,10 @@ public:
     void PeriodicCheck(Time_t now) override { /* ... */ }
     void MigrationComplete(Time_t time, VMId_t vm_id) override { /* ... */ }
     void Shutdown(Time_t time) override {
-        for (auto& vm : vms) VM_Shutdown(vm);
+        task_to_vm->clear();    
     }
 
 private:
-    vector<VMId_t> vms; 
-    vector<MachineId_t> machines;
     double getMachineUtilization(MachineId_t mid)
     {
         MachineInfo_t info = Machine_GetInfo(mid);
@@ -102,5 +98,26 @@ private:
         double cpuPressure = 1.0 / machine.num_cpus;
 
         return 0.4 * cpuPressure + 0.6 * memPressure;
+    }
+    VMId_t findOrCreateVM(MachineId_t mid, VMType_t required_vm)
+    {
+        // Look for an existing VM of the right type on this machine
+        for (VMId_t vm : (*machine_to_vms)[mid])
+        {
+            VMInfo_t info = VM_GetInfo(vm);
+            if (info.vm_type == required_vm)
+                return vm;
+        }
+
+        // None found — create one dynamically
+        MachineInfo_t m = Machine_GetInfo(mid);
+        VMId_t new_vm = VM_Create(required_vm, m.cpu);
+        VM_Attach(new_vm, mid);
+
+        (*machine_to_vms)[mid].push_back(new_vm);
+        (*vm_to_machine)[new_vm] = mid;
+        vms.push_back(new_vm);
+
+        return new_vm;
     }
 };

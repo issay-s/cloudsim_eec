@@ -43,7 +43,7 @@ void Scheduler::Init() {
     }    
 
     algo = new Greedy();
-    algo->Init(vms, machines, machine_to_vms, vm_to_machine, task_to_vm);
+    algo->Init(machine_to_vms, vm_to_machine, task_to_vm);
 
     SimOutput("Scheduler::Init(): VM ids are " + to_string(vms[0]) + " ahd " + to_string(vms[1]), 3);
 }

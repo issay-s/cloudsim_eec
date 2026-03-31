@@ -9,8 +9,6 @@ class SchedulingAlgorithm {
 public:
     virtual ~SchedulingAlgorithm() {}
     virtual void Init(
-        vector<VMId_t>& vms, 
-        vector<MachineId_t>& machines,
         map<MachineId_t, vector<VMId_t>>& machine_to_vms,
         map<VMId_t, MachineId_t>& vm_to_machine,
         map<TaskId_t, VMId_t>& task_to_vm
