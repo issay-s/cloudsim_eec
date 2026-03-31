@@ -22,8 +22,13 @@ public:
     void Shutdown(Time_t now);
     void TaskComplete(Time_t now, TaskId_t task_id);
 private:
+    SchedulingAlgorithm* algo;
     vector<VMId_t> vms;
     vector<MachineId_t> machines;
+
+    map<MachineId_t, vector<VMId_t>> machineToVMs;
+    map<VMId_t, MachineId_t> vmToMachine;
+    map<TaskId_t, VMId_t> taskToVM;
 };
 
 
