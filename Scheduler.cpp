@@ -5,11 +5,19 @@
 //  Created by ELMOOTAZBELLAH ELNOZAHY on 10/20/24.
 //
 
+#include <map>
+
+#include "SchedulingAlgorithm.hpp"
 #include "Scheduler.hpp"
+#include "ConservativeSpread.hpp"
+#include "ConsolidationSleep.hpp"
 #include <stdio.h>
 
-static bool migrating = false;
 static unsigned active_machines;
+
+#ifndef SCHED_ALGO
+#define SCHED_ALGO 1
+#endif
 
 void Scheduler::Init() {
     // Find the parameters of the clusters
@@ -42,14 +50,20 @@ void Scheduler::Init() {
         vm_to_machine[vm_id] = curr_machine;
     }    
 
-    algo = new Greedy();
+#if SCHED_ALGO == 2
+    algo = new ConsolidationSleep();
+    SimOutput("Scheduler::Init(): Using ConsolidationSleep policy", 1);
+#else
+    algo = new ConservativeSpread();
+    SimOutput("Scheduler::Init(): Using ConservativeSpread policy", 1);
+#endif
     algo->Init(machine_to_vms, vm_to_machine, task_to_vm);
 
     SimOutput("Scheduler::Init(): VM ids are " + to_string(vms[0]) + " ahd " + to_string(vms[1]), 3);
 }
 
 void Scheduler::MigrationComplete(Time_t time, VMId_t vm_id) {
-    // Update your data structure. The VM now can receive new tasks
+    algo->MigrationComplete(time, vm_id);
 }
 
 void Scheduler::NewTask(Time_t now, TaskId_t task_id) {
@@ -78,6 +92,7 @@ void Scheduler::PeriodicCheck(Time_t now) {
     // SchedulerCheck is called periodically by the simulator to allow you to monitor, make decisions, adjustments, etc.
     // Unlike the other invocations of the scheduler, this one doesn't report any specific event
     // Recommendation: Take advantage of this function to do some monitoring and adjustments as necessary
+    algo->PeriodicCheck(now);
 }
 
 void Scheduler::Shutdown(Time_t time) {
@@ -85,9 +100,9 @@ void Scheduler::Shutdown(Time_t time) {
     // Report about the total energy consumed
     // Report about the SLA compliance
     // Shutdown everything to be tidy :-)
-    for(auto & vm: vms) {
-        VM_Shutdown(vm);
-    }
+    // Some policies can leave machines in sleep states at simulation end.
+    // VM_Shutdown can throw in that condition, and metrics are already reported.
+    // Keep shutdown side-effect free for stable experiment runs.
     SimOutput("SimulationComplete(): Finished!", 4);
     SimOutput("SimulationComplete(): Time is " + to_string(time), 4);
 }
@@ -97,6 +112,7 @@ void Scheduler::TaskComplete(Time_t now, TaskId_t task_id) {
     // Decide if a machine is to be turned off, slowed down, or VMs to be migrated according to your policy
     // This is an opportunity to make any adjustments to optimize performance/energy
     SimOutput("Scheduler::TaskComplete(): Task " + to_string(task_id) + " is complete at " + to_string(now), 4);
+    algo->TaskComplete(now, task_id);
 }
 
 // Public interface below
@@ -127,19 +143,12 @@ void MigrationDone(Time_t time, VMId_t vm_id) {
     // The function is called on to alert you that migration is complete
     SimOutput("MigrationDone(): Migration of VM " + to_string(vm_id) + " was completed at time " + to_string(time), 4);
     Scheduler.MigrationComplete(time, vm_id);
-    migrating = false;
 }
 
 void SchedulerCheck(Time_t time) {
     // This function is called periodically by the simulator, no specific event
     SimOutput("SchedulerCheck(): SchedulerCheck() called at " + to_string(time), 4);
     Scheduler.PeriodicCheck(time);
-    static unsigned counts = 0;
-    counts++;
-    if(counts == 10) {
-        migrating = true;
-        VM_Migrate(1, 9);
-    }
 }
 
 void SimulationComplete(Time_t time) {
@@ -161,5 +170,7 @@ void SLAWarning(Time_t time, TaskId_t task_id) {
 
 void StateChangeComplete(Time_t time, MachineId_t machine_id) {
     // Called in response to an earlier request to change the state of a machine
+    (void)machine_id;
+    Scheduler.PeriodicCheck(time);
 }
 
