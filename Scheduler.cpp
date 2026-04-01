@@ -11,13 +11,14 @@
 #include "Scheduler.hpp"
 #include "ConservativeSpread.hpp"
 #include "ConsolidationSleep.hpp"
+#include "ThresholdSLA.hpp"
 #include "Greedy.hpp"
 #include <stdio.h>
 
 static unsigned active_machines;
 
 #ifndef SCHED_ALGO
-#define SCHED_ALGO 67
+#define SCHED_ALGO 1
 #endif
 
 void Scheduler::Init() {
@@ -55,6 +56,9 @@ void Scheduler::Init() {
     algo = new ConsolidationSleep();
     SimOutput("Scheduler::Init(): Using ConsolidationSleep policy", 1);
 #elif SCHED_ALGO == 3
+    algo = new ThresholdSLA();
+    SimOutput("Scheduler::Init(): Using ThresholdSLA policy", 1);
+#elif SCHED_ALGO == 4
     algo = new Greedy();
     SimOutput("Scheduler::Init(): Using Greedy policy", 1);
 #else
