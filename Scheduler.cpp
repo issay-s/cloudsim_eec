@@ -11,12 +11,13 @@
 #include "Scheduler.hpp"
 #include "ConservativeSpread.hpp"
 #include "ConsolidationSleep.hpp"
+#include "Greedy.hpp"
 #include <stdio.h>
 
 static unsigned active_machines;
 
 #ifndef SCHED_ALGO
-#define SCHED_ALGO 1
+#define SCHED_ALGO 67
 #endif
 
 void Scheduler::Init() {
@@ -53,6 +54,9 @@ void Scheduler::Init() {
 #if SCHED_ALGO == 2
     algo = new ConsolidationSleep();
     SimOutput("Scheduler::Init(): Using ConsolidationSleep policy", 1);
+#elif SCHED_ALGO == 3
+    algo = new Greedy();
+    SimOutput("Scheduler::Init(): Using Greedy policy", 1);
 #else
     algo = new ConservativeSpread();
     SimOutput("Scheduler::Init(): Using ConservativeSpread policy", 1);
