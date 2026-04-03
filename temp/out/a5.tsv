@@ -1,0 +1,11 @@
+5	AdaptiveHybrid	Input.md	0	0	0	YES
+5	AdaptiveHybrid	Input_burst_stress.md	0	0	0	YES
+5	AdaptiveHybrid	Input_low_intensity.md	0	0	0	YES
+5	AdaptiveHybrid	Input_memory_pressure.md	0	0	0	YES
+5	AdaptiveHybrid	Input_heterogeneous_mix.md	0	0	0	YES
+5	AdaptiveHybrid	Input_contrast_tradeoff.md	0	0	0	YES
+5	AdaptiveHybrid	match.md	124	NA	NA	NO
+5	AdaptiveHybrid	day.md	124	NA	NA	NO
+5	AdaptiveHybrid	gentler_hour.md	0	0	0.405782	YES
+5	AdaptiveHybrid	smooth.md	0	0	0	YES
+5	AdaptiveHybrid	spike_nefarious.md	0	0	0	YES

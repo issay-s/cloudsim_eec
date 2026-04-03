@@ -1,0 +1,13 @@
+algo	case	sla0	sla1	energy	runtime
+ConsolidationSleep	Input_burst_stress.md	4.87013	0	0.0187922	13.56
+ConsolidationSleep	Input_low_intensity.md	0	0	0.00628538	5.46
+ConsolidationSleep	Input_memory_pressure.md	0	0	0.00126952	1.86
+ConsolidationSleep	Input_heterogeneous_mix.md	0	0	0.00111176	1.02
+ConsolidationSleep	Input_contrast_tradeoff.md	0	0	0.00328684	3.42
+ConsolidationSleep	spike_nefarious.md	0	0	0.0116119	16.32
+ThresholdSLA	Input_burst_stress.md	4.87013	0	0.0186965	13.56
+ThresholdSLA	Input_low_intensity.md	0	0	0.00738931	6.72
+ThresholdSLA	Input_memory_pressure.md	0	0	0.00126952	1.86
+ThresholdSLA	Input_heterogeneous_mix.md	0	0	0.00111176	1.02
+ThresholdSLA	Input_contrast_tradeoff.md	0	0	0.00401284	4.38
+ThresholdSLA	spike_nefarious.md	0	0	0.0116119	16.32

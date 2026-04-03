@@ -1,0 +1,13 @@
+algo	base_case	runs	pass_runs	pass_rate	avg_sla0	avg_sla1	avg_energy_kwh	avg_runtime_s
+AdaptiveHybrid	day.md	2	2	1.00	0.000000	0.000000	64.011750	86400.750000
+AdaptiveHybrid	gentler_hour.md	2	2	1.00	0.000000	0.000000	7.255650	3604.230000
+AdaptiveHybrid	match.md	2	2	1.00	0.000000	0.000000	0.049129	20.580000
+AdaptiveHybrid	smooth.md	2	2	1.00	0.000000	0.000000	0.011552	15.570000
+ConsolidationSleep	day.md	2	2	1.00	0.000000	0.000000	64.011750	86400.750000
+ConsolidationSleep	gentler_hour.md	2	2	1.00	0.000000	0.000000	7.255525	3604.230000
+ConsolidationSleep	match.md	2	2	1.00	0.000000	0.000000	0.048921	20.550000
+ConsolidationSleep	smooth.md	2	2	1.00	0.000000	0.000000	0.011552	15.570000
+ThresholdSLA	day.md	2	2	1.00	0.000000	0.000000	64.011750	86400.750000
+ThresholdSLA	gentler_hour.md	2	2	1.00	0.000000	0.000000	7.255150	3604.230000
+ThresholdSLA	match.md	2	2	1.00	0.000000	0.000000	0.048749	20.550000
+ThresholdSLA	smooth.md	2	2	1.00	0.000000	0.000000	0.011552	15.570000

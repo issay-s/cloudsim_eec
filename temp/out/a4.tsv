@@ -1,0 +1,11 @@
+4	Greedy	Input.md	0	0	0	YES
+4	Greedy	Input_burst_stress.md	124	NA	NA	NO
+4	Greedy	Input_low_intensity.md	0	0	0	YES
+4	Greedy	Input_memory_pressure.md	0	0	0	YES
+4	Greedy	Input_heterogeneous_mix.md	0	0	0	YES
+4	Greedy	Input_contrast_tradeoff.md	0	0	0	YES
+4	Greedy	match.md	124	NA	NA	NO
+4	Greedy	day.md	0	0	0	YES
+4	Greedy	gentler_hour.md	0	0	0	YES
+4	Greedy	smooth.md	0	0	0	YES
+4	Greedy	spike_nefarious.md	0	0	0	YES

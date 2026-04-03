@@ -1,0 +1,16 @@
+algo	input	run_exit	sla0	sla1	pass
+Conservative	spike_nefarious.md	0	0	0	YES
+Conservative	spike.md	0	0	58.5366	NO
+Conservative	smooth.md	0	0	0	YES
+Consolidation	spike_nefarious.md	0	0	0	YES
+Consolidation	spike.md	0	0	58.5366	NO
+Consolidation	smooth.md	0	0	0	YES
+Threshold	spike_nefarious.md	0	0	0	YES
+Threshold	spike.md	0	0	58.5366	NO
+Threshold	smooth.md	0	0	0	YES
+Greedy	spike_nefarious.md	0	0	0	YES
+Greedy	spike.md	0	0	58.5366	NO
+Greedy	smooth.md	0	0	0	YES
+Adaptive	spike_nefarious.md	0	0	0	YES
+Adaptive	spike.md	0	0	58.5366	NO
+Adaptive	smooth.md	0	0	0	YES

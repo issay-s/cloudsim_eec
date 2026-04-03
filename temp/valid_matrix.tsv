@@ -1,0 +1,8 @@
+algo_id	algo	input	run_exit	sla0	sla1	pass_cutoff
+1	ConservativeSpread	Input.md	0	0	0	YES
+1	ConservativeSpread	Input_burst_stress.md	0	4.87013	0	YES
+1	ConservativeSpread	Input_low_intensity.md	0	0	0	YES
+1	ConservativeSpread	Input_memory_pressure.md	0	0	0	YES
+1	ConservativeSpread	Input_heterogeneous_mix.md	0	0	0	YES
+1	ConservativeSpread	Input_contrast_tradeoff.md	0	0	0	YES
+1	ConservativeSpread	match.md	0	0	0	YES

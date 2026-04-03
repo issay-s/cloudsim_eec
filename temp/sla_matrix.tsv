@@ -1,0 +1,5 @@
+algo_id	algo	input	compile_ok	run_exit	sla0	sla1	energy_kwh	runtime_s	pass_cutoff
+1	ConservativeSpread	spike_nefarious.md	1	0	0	0	0.0116119	16.32	YES
+1	ConservativeSpread	spike.md	1	0	0	58.5366	0.025095	28.14	NO
+1	ConservativeSpread	smooth.md	1	0	0	0	0.0121098	16.32	YES
+1	ConservativeSpread	gentler_hour.md	1	0	0	0	7.25969	3603.48	YES
