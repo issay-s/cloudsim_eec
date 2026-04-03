@@ -82,6 +82,15 @@ private:
         return 0.5 * cpu_load + 0.5 * mem_load;
     }
 
+    double GPUPlacementBias(const TaskInfo_t& task, const MachineInfo_t& info) const
+    {
+        if (!task.gpu_capable) {
+            return 0.0;
+        }
+        // Lower score is better in this policy; reward GPU-equipped machines.
+        return info.gpus ? -0.12 : 0.08;
+    }
+
     bool IsTaskFeasibleOnMachine(const TaskInfo_t& task, const MachineInfo_t& info, bool require_awake) const
     {
         if (task.required_cpu != info.cpu) {
@@ -127,7 +136,7 @@ private:
                 continue;
             }
 
-            double score = MachineLoadScore(machine);
+            double score = MachineLoadScore(machine) + GPUPlacementBias(task, machine);
             if (score < best_score) {
                 best_score = score;
                 best_machine = id;

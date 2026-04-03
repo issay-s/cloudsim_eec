@@ -77,8 +77,8 @@ private:
     map<MachineId_t, unsigned> idle_streak;
     unsigned checks_since_new_task = 0;
 
-    static constexpr unsigned kMinAwakePerCPU = 2;
-    static constexpr unsigned kIdleChecksBeforeSleep = 4;
+    static constexpr unsigned kMinAwakePerCPU = 3;
+    static constexpr unsigned kIdleChecksBeforeSleep = 10;
     static constexpr double kUrgentLoadCap = 0.70;
     static constexpr double kConsolidationCap = 0.60;
 
@@ -105,6 +105,18 @@ private:
             return false;
         }
         return true;
+    }
+
+    double GPUPlacementBias(const TaskInfo_t& task, const MachineInfo_t& info, bool lower_is_better) const
+    {
+        if (!task.gpu_capable) {
+            return 0.0;
+        }
+        // For lower-is-better scores, negative favors GPU; inverse for higher-is-better.
+        if (lower_is_better) {
+            return info.gpus ? -0.12 : 0.08;
+        }
+        return info.gpus ? 0.12 : -0.08;
     }
 
     double MachineLoadScoreConsolidation(const MachineInfo_t& info) const
@@ -191,7 +203,7 @@ private:
             }
 
             if (urgent) {
-                double score = MachineLoadScoreSpread(machine);
+                double score = MachineLoadScoreSpread(machine) + GPUPlacementBias(task, machine, true);
                 if (score < best_score) {
                     best_score = score;
                     best_machine = id;
@@ -201,12 +213,12 @@ private:
                     least_loaded_machine = id;
                 }
             } else {
-                double spread_score = MachineLoadScoreSpread(machine);
+                double spread_score = MachineLoadScoreSpread(machine) + GPUPlacementBias(task, machine, true);
                 if (spread_score < least_loaded_score) {
                     least_loaded_score = spread_score;
                     least_loaded_machine = id;
                 }
-                double score = MachineLoadScoreConsolidation(machine);
+                double score = MachineLoadScoreConsolidation(machine) + GPUPlacementBias(task, machine, false);
                 if (score < kConsolidationCap && score > best_score) {
                     best_score = score;
                     best_machine = id;
@@ -250,7 +262,7 @@ private:
             if (waking_machines.count(id) != 0) {
                 continue;
             }
-            double score = MachineLoadScoreSpread(machine);
+            double score = MachineLoadScoreSpread(machine) + GPUPlacementBias(task, machine, true);
             if (score < wake_candidate_score) {
                 wake_candidate_score = score;
                 wake_candidate = id;
@@ -281,7 +293,7 @@ private:
     void SleepIdleMachines()
     {
         // Avoid sleep-state thrashing while arrivals are still active.
-        if (!pending_tasks.empty() || checks_since_new_task < (kIdleChecksBeforeSleep * 2)) {
+        if (!pending_tasks.empty() || checks_since_new_task < (kIdleChecksBeforeSleep * 6)) {
             return;
         }
 

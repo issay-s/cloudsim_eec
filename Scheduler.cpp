@@ -12,13 +12,21 @@
 #include "ConservativeSpread.hpp"
 #include "ConsolidationSleep.hpp"
 #include "ThresholdSLA.hpp"
+#include "AdaptiveHybrid.hpp"
 #include "Greedy.hpp"
 #include <stdio.h>
 
 static unsigned active_machines;
+static unsigned sla_warning_count = 0;
+static unsigned memory_warning_count = 0;
+static unsigned pstate_pressure_cooldown = 0;
 
 #ifndef SCHED_ALGO
 #define SCHED_ALGO 1
+#endif
+
+#ifndef ENABLE_PSTATE_TUNING
+#define ENABLE_PSTATE_TUNING 0
 #endif
 
 void Scheduler::Init() {
@@ -61,6 +69,9 @@ void Scheduler::Init() {
 #elif SCHED_ALGO == 4
     algo = new Greedy();
     SimOutput("Scheduler::Init(): Using Greedy policy", 1);
+#elif SCHED_ALGO == 5
+    algo = new AdaptiveHybrid();
+    SimOutput("Scheduler::Init(): Using AdaptiveHybrid policy", 1);
 #else
     algo = new ConservativeSpread();
     SimOutput("Scheduler::Init(): Using ConservativeSpread policy", 1);
@@ -145,6 +156,29 @@ void HandleTaskCompletion(Time_t time, TaskId_t task_id) {
 void MemoryWarning(Time_t time, MachineId_t machine_id) {
     // The simulator is alerting you that machine identified by machine_id is overcommitted
     SimOutput("MemoryWarning(): Overflow at " + to_string(machine_id) + " was detected at time " + to_string(time), 0);
+    memory_warning_count++;
+    pstate_pressure_cooldown = 8;
+
+    // Emergency response: maximize local compute speed, then wake one compatible peer.
+    MachineInfo_t hot = Machine_GetInfo(machine_id);
+    if (hot.s_state == S0) {
+        Machine_SetCorePerformance(machine_id, 0, P0);
+    }
+
+    for (MachineId_t mid = 0; mid < Machine_GetTotal(); mid++) {
+        if (mid == machine_id) {
+            continue;
+        }
+        MachineInfo_t m = Machine_GetInfo(mid);
+        if (m.cpu != hot.cpu) {
+            continue;
+        }
+        if (m.s_state == S0) {
+            continue;
+        }
+        Machine_SetState(mid, S0);
+        break;
+    }
 }
 
 void MigrationDone(Time_t time, VMId_t vm_id) {
@@ -157,6 +191,30 @@ void SchedulerCheck(Time_t time) {
     // This function is called periodically by the simulator, no specific event
     SimOutput("SchedulerCheck(): SchedulerCheck() called at " + to_string(time), 4);
     Scheduler.PeriodicCheck(time);
+    if (pstate_pressure_cooldown > 0) {
+        pstate_pressure_cooldown--;
+    }
+
+    // Optional dynamic P-state tuning.
+#if ENABLE_PSTATE_TUNING
+    // Keep low load machines in lower-performance states to reduce dynamic power.
+    for (MachineId_t mid = 0; mid < Machine_GetTotal(); mid++) {
+        MachineInfo_t m = Machine_GetInfo(mid);
+        if (m.s_state != S0) {
+            continue;
+        }
+
+        CPUPerformance_t target = P0;
+        if (m.active_tasks == 0) {
+            // Only down-clock truly idle machines.
+            target = (pstate_pressure_cooldown > 0) ? P1 : P2;
+        }
+
+        if (m.p_state != target) {
+            Machine_SetCorePerformance(mid, 0, target);
+        }
+    }
+#endif
 }
 
 void SimulationComplete(Time_t time) {
@@ -173,7 +231,26 @@ void SimulationComplete(Time_t time) {
 }
 
 void SLAWarning(Time_t time, TaskId_t task_id) {
-    
+    sla_warning_count++;
+    pstate_pressure_cooldown = 10;
+    SimOutput("SLAWarning(): Warning for task " + to_string(task_id) + " at " + to_string(time), 1);
+
+    // Promote violating task to highest priority immediately.
+    SetTaskPriority(task_id, HIGH_PRIORITY);
+
+    // Wake one compatible sleeping machine to increase near-term capacity.
+    CPUType_t required_cpu = RequiredCPUType(task_id);
+    for (MachineId_t mid = 0; mid < Machine_GetTotal(); mid++) {
+        MachineInfo_t m = Machine_GetInfo(mid);
+        if (m.cpu != required_cpu) {
+            continue;
+        }
+        if (m.s_state == S0) {
+            continue;
+        }
+        Machine_SetState(mid, S0);
+        break;
+    }
 }
 
 void StateChangeComplete(Time_t time, MachineId_t machine_id) {

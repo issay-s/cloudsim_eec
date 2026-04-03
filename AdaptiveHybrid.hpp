@@ -1,5 +1,5 @@
-#ifndef ThresholdSLA_hpp
-#define ThresholdSLA_hpp
+#ifndef AdaptiveHybrid_hpp
+#define AdaptiveHybrid_hpp
 
 #include <deque>
 #include <map>
@@ -7,11 +7,11 @@
 
 #include "SchedulingAlgorithm.hpp"
 
-// Literature-inspired threshold policy:
-// - keep machine utilization between lower/upper bounds,
-// - prioritize SLA-sensitive tasks on lower-load machines,
-// - consolidate best-effort tasks without crossing upper bound.
-class ThresholdSLA : public SchedulingAlgorithm {
+// Adaptive hybrid policy:
+// - SLA mode: spread urgent work to reduce queueing delay.
+// - Energy mode: consolidate best-effort work under a utilization cap.
+// - Hysteresis-based sleep/wake decisions with a warm-capacity floor.
+class AdaptiveHybrid : public SchedulingAlgorithm {
 public:
     void Init(
         map<MachineId_t, vector<VMId_t>>& m2v,
@@ -34,7 +34,8 @@ public:
     {
         (void)now;
         checks_since_new_task = 0;
-        if (IsUrgentSLA(GetTaskInfo(task_id))) {
+        TaskInfo_t task = GetTaskInfo(task_id);
+        if (IsUrgentSLA(task)) {
             urgent_cooldown_checks = kUrgentCooldownWindow;
         }
         if (!TryPlaceTask(task_id)) {
@@ -56,6 +57,7 @@ public:
         if (urgent_cooldown_checks > 0) {
             urgent_cooldown_checks--;
         }
+
         RefreshWakingSet();
         DrainPending();
         SleepIdleMachines();
@@ -82,35 +84,39 @@ private:
     map<MachineId_t, vector<VMId_t>>* machine_to_vms = nullptr;
     map<VMId_t, MachineId_t>* vm_to_machine = nullptr;
     map<TaskId_t, VMId_t>* task_to_vm = nullptr;
+
     deque<TaskId_t> pending_tasks;
     set<MachineId_t> waking_machines;
     set<MachineId_t> sleeping_machines;
     map<MachineId_t, unsigned> idle_streak;
+
     unsigned checks_since_new_task = 0;
     unsigned urgent_cooldown_checks = 0;
 
-    static constexpr double kUpperUtilUrgent = 0.75;
-    static constexpr double kUpperUtilBestEffort = 0.88;
-    static constexpr double kLowerUtil = 0.18;
-    static constexpr unsigned kIdleChecksBeforeSleep = 10;
-    static constexpr unsigned kDeepSleepChecks = 30;
-    static constexpr unsigned kMinAwakePerCPU = 3;
-    static constexpr unsigned kUrgentCooldownWindow = 4;
+    static constexpr double kUrgentUpperUtil = 0.78;
+    static constexpr double kEnergyUpperUtil = 0.92;
+    static constexpr double kSleepLowerUtil = 0.20;
+    static constexpr unsigned kIdleChecksToS0i1 = 14;
+    static constexpr unsigned kIdleChecksToS1 = 42;
+    static constexpr unsigned kMinAwakePerCPU = 4;
+    static constexpr unsigned kUrgentCooldownWindow = 10;
 
-    Priority_t PriorityForTask(const TaskInfo_t& task) const
+    bool InSlaMode() const
     {
-        if (task.required_sla == SLA0) {
-            return HIGH_PRIORITY;
-        }
-        if (task.required_sla == SLA1) {
-            return MID_PRIORITY;
-        }
-        return LOW_PRIORITY;
+        return !pending_tasks.empty() || urgent_cooldown_checks > 0;
     }
 
     bool IsUrgentSLA(const TaskInfo_t& task) const
     {
         return task.required_sla == SLA0 || task.required_sla == SLA1;
+    }
+
+    Priority_t PriorityForTask(const TaskInfo_t& task) const
+    {
+        if (task.required_sla == SLA0 || task.required_sla == SLA1) {
+            return HIGH_PRIORITY;
+        }
+        return LOW_PRIORITY;
     }
 
     bool IsTaskFeasibleOnMachine(const TaskInfo_t& task, const MachineInfo_t& info, bool require_awake) const
@@ -166,6 +172,7 @@ private:
             if (m.s_state == S0) {
                 waking_machines.erase(id);
             } else {
+                // Sleep transition has landed; allow future sleep requests.
                 sleeping_machines.erase(id);
             }
         }
@@ -179,23 +186,24 @@ private:
                 return vm_id;
             }
         }
-        MachineInfo_t machine = Machine_GetInfo(machine_id);
-        VMId_t vm_id = VM_Create(required_vm, machine.cpu);
-        VM_Attach(vm_id, machine_id);
-        (*machine_to_vms)[machine_id].push_back(vm_id);
-        (*vm_to_machine)[vm_id] = machine_id;
-        return vm_id;
+        MachineInfo_t m = Machine_GetInfo(machine_id);
+        VMId_t vm = VM_Create(required_vm, m.cpu);
+        VM_Attach(vm, machine_id);
+        (*machine_to_vms)[machine_id].push_back(vm);
+        (*vm_to_machine)[vm] = machine_id;
+        return vm;
     }
 
     bool TryPlaceTask(TaskId_t task_id)
     {
         TaskInfo_t task = GetTaskInfo(task_id);
         const bool urgent = IsUrgentSLA(task);
+        const bool sla_mode = InSlaMode();
         const unsigned machine_count = Machine_GetTotal();
 
         MachineId_t best = static_cast<MachineId_t>(-1);
         MachineId_t fallback = static_cast<MachineId_t>(-1);
-        double best_metric = urgent ? 10.0 : -1.0;
+        double best_metric = (urgent || sla_mode) ? 10.0 : -1.0;
         double fallback_metric = 10.0;
 
         for (MachineId_t id = 0; id < machine_count; id++) {
@@ -203,28 +211,23 @@ private:
             if (!IsTaskFeasibleOnMachine(task, m, true)) {
                 continue;
             }
-            if (sleeping_machines.count(id) != 0) {
-                continue;
-            }
-            double util = UtilScore(m);
 
+            double util = UtilScore(m);
             double fallback_score = util + GPUPlacementBias(task, m, true);
             if (fallback_score < fallback_metric) {
                 fallback_metric = fallback_score;
                 fallback = id;
             }
 
-            if (urgent) {
-                // Urgent tasks prefer lower queueing delay.
+            if (urgent || sla_mode) {
                 double urgent_score = util + GPUPlacementBias(task, m, true);
-                if (util <= kUpperUtilUrgent && urgent_score < best_metric) {
+                if (util <= kUrgentUpperUtil && urgent_score < best_metric) {
                     best_metric = urgent_score;
                     best = id;
                 }
             } else {
-                // Best-effort tasks prefer consolidation under the cap.
                 double be_score = util + GPUPlacementBias(task, m, false);
-                if (util <= kUpperUtilBestEffort && be_score > best_metric) {
+                if (util <= kEnergyUpperUtil && be_score > best_metric) {
                     best_metric = be_score;
                     best = id;
                 }
@@ -243,7 +246,7 @@ private:
             return true;
         }
 
-        // No awake feasible machine; wake one compatible machine.
+        // Wake a compatible non-awake machine.
         MachineId_t wake_candidate = static_cast<MachineId_t>(-1);
         double wake_metric = 10.0;
         for (MachineId_t id = 0; id < machine_count; id++) {
@@ -265,13 +268,15 @@ private:
             waking_machines.insert(wake_candidate);
             Machine_SetState(wake_candidate, S0);
         }
+
         return false;
     }
 
     void SleepIdleMachines()
     {
-        // Let arrivals settle before sleeping machines.
-        if (!pending_tasks.empty() || checks_since_new_task < (kIdleChecksBeforeSleep * 4) || urgent_cooldown_checks > 0) {
+        // Keep latency low while arrivals are active, queue is non-empty,
+        // or we are still in the recent-urgency cooldown window.
+        if (!pending_tasks.empty() || checks_since_new_task < (kIdleChecksToS0i1 * 4) || urgent_cooldown_checks > 0) {
             return;
         }
 
@@ -295,22 +300,19 @@ private:
                 idle_streak[id] = 0;
                 continue;
             }
-
-            // Sleep only clearly underutilized / idle machines after hysteresis.
-            double util = UtilScore(m);
-            if (util > kLowerUtil) {
+            if (UtilScore(m) > kSleepLowerUtil) {
                 idle_streak[id] = 0;
                 continue;
             }
 
             idle_streak[id]++;
-            if (idle_streak[id] >= kDeepSleepChecks && urgent_cooldown_checks == 0) {
+            if (idle_streak[id] >= kIdleChecksToS1 && urgent_cooldown_checks == 0) {
                 sleeping_machines.insert(id);
                 Machine_SetState(id, S1);
                 if (awake_count[m.cpu] > 0) {
                     awake_count[m.cpu]--;
                 }
-            } else if (idle_streak[id] >= kIdleChecksBeforeSleep) {
+            } else if (idle_streak[id] >= kIdleChecksToS0i1) {
                 sleeping_machines.insert(id);
                 Machine_SetState(id, S0i1);
             }
