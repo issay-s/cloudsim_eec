@@ -22,7 +22,7 @@ static unsigned memory_warning_count = 0;
 static unsigned pstate_pressure_cooldown = 0;
 
 #ifndef SCHED_ALGO
-#define SCHED_ALGO 1
+#define SCHED_ALGO 4
 #endif
 
 #ifndef ENABLE_PSTATE_TUNING
