@@ -7,6 +7,9 @@
 
 #include "SchedulingAlgorithm.hpp"
 
+// this file was written in collaboration with Cursor AI.
+// nearly everything in it was iterated over by both Lance and the AI.
+
 // Adaptive hybrid policy:
 // - SLA mode: spread urgent work to reduce queueing delay.
 // - Energy mode: consolidate best-effort work under a utilization cap.
