@@ -7,7 +7,8 @@
 
 #include "SchedulingAlgorithm.hpp"
 
-// overall structure written/scaffolded by Cursor AI. Fine tuning and algo details written by hand.
+// overall structure written/scaffolded by Cursor AI. 
+// Fine tuning and algo details written by hand.
 
 class Greedy : public SchedulingAlgorithm {
 public:

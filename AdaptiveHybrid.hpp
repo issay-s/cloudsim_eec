@@ -8,7 +8,8 @@
 #include "SchedulingAlgorithm.hpp"
 
 // this file was written in collaboration with Cursor AI.
-// nearly everything in it was iterated over by both Lance and the AI.
+// nearly everything in it was iterated over by both Lance and the AI,
+// with the help of Issay
 
 // Adaptive hybrid policy:
 // - SLA mode: spread urgent work to reduce queueing delay.
