@@ -7,6 +7,7 @@
 
 #include "SchedulingAlgorithm.hpp"
 
+// AI attribution: policy development included iterative assistance from Cursor AI (GPT-5.3 Codex).
 // Adaptive hybrid policy:
 // - SLA mode: spread urgent work to reduce queueing delay.
 // - Energy mode: consolidate best-effort work under a utilization cap.
