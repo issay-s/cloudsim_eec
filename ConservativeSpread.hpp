@@ -8,6 +8,7 @@
 #include "SchedulingAlgorithm.hpp"
 
 // overall structure written/scaffolded by Cursor AI. Fine tuning and algo details written by hand.
+// AI attribution: policy development included iterative assistance from Cursor AI (GPT-5.3 Codex).
 
 class ConservativeSpread : public SchedulingAlgorithm {
 public:
