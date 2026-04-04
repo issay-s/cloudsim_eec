@@ -7,6 +7,7 @@
 
 #include "SchedulingAlgorithm.hpp"
 
+// AI attribution: policy development included iterative assistance from Cursor AI (GPT-5.3 Codex).
 // Literature-inspired threshold policy:
 // - keep machine utilization between lower/upper bounds,
 // - prioritize SLA-sensitive tasks on lower-load machines,
