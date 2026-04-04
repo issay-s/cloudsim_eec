@@ -7,6 +7,7 @@
 
 #include "SchedulingAlgorithm.hpp"
 
+// AI attribution: policy development included iterative assistance from Cursor AI (GPT-5.3 Codex).
 class ConsolidationSleep : public SchedulingAlgorithm {
 public:
     void Init(
