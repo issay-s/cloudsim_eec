@@ -1,5 +1,0 @@
-case	run_exit	sla0	sla1	energy	runtime	pass
-match.md	0	0	0	0.0504441	21	YES
-day.md	0	0	0	64.1455	86400.7	YES
-gentler_hour.md	0	0	0	7.26774	3603.48	YES
-smooth.md	0	0	0	0.0121098	16.32	YES

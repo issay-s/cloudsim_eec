@@ -1,4 +1,0 @@
-algo	run_exit	sla0	sla1	pass
-ConsolidationSleep	0	0	0	YES
-ThresholdSLA	0	0	0	YES
-AdaptiveHybrid	0	0	0	YES
